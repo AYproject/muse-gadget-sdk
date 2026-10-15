@@ -101,6 +101,22 @@ class LinkEpaperStatusTest(unittest.TestCase):
         self.assertIn('board: reterminal-sticky-link\n            target: esp32s3\n'
                       '            overlays: ";devices/sdkconfig.reterminal-sticky-link"', workflow)
 
+    def test_sticky_features_table_preserves_other_boards(self):
+        docs = (ROOT / "devices/README.md").read_text()
+        table = docs.split("## Features\n", 1)[1].split("*Sticky entries", 1)[0]
+        rows = [line for line in table.splitlines() if line.startswith("|")]
+        self.assertIn("reTerminal Sticky*", rows[0])
+        self.assertIn("Waveshare LCD 1.28", rows[0])
+        for row in rows[1:]:
+            self.assertEqual(row.count("|"), rows[0].count("|"), row.split("|", 2)[1])
+        columns = [[cell.strip() for cell in row.split("|")[1:-1]] for row in rows]
+        features = {row[0]: row for row in columns[2:]}
+        self.assertEqual(features["Buttons"][columns[0].index("Waveshare LCD 1.28")], "Screen only")
+        self.assertEqual(features["Battery status"][columns[0].index("Waveshare LCD 1.28")],
+                         "Voltage only (unverified)")
+        self.assertEqual(features["UI and settings"][columns[0].index("reTerminal Sticky*")],
+                         "Basic navigation checked")
+
     def test_sticky_settings_flash_uses_internal_stack(self):
         board = (ROOT / "components/muse/boards/board_reterminal_sticky.c").read_text()
         settings = (ROOT / "components/muse/muse_settings.c").read_text()
