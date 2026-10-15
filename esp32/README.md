@@ -192,6 +192,9 @@ status screen.
 | M5Stack Cardputer ADV (experimental) | UI, GO/Space push-to-talk with text replies, Esc/Enter/arrow menu controls | `tools/muse/board.sh build cardputer-adv` |
 | M5Stack StickS3 | UI, push-to-talk, two-button menu, images | see [`AGENTS.md`](AGENTS.md#boards-with-the-full-ui-by-hand) |
 | M5Stack StopWatch | UI, push-to-talk, settings, images | see [`AGENTS.md`](AGENTS.md#boards-with-the-full-ui-by-hand) |
+| Seeed XIAO AMOLED Display, 2.05" module (experimental) | UI, ENTER push-to-talk, touch, settings, images | `tools/muse/board.sh build xiao-amoled-205` |
+| Seeed XIAO AMOLED Display, 1.75" round module (experimental) | UI, ENTER push-to-talk, touch, settings, images | `tools/muse/board.sh build xiao-amoled-175` |
+| Seeed XIAO AMOLED Display, 2.16" square module (experimental) | UI, ENTER push-to-talk, touch, settings, images | `tools/muse/board.sh build xiao-amoled-216` |
 | M5Stack CoreS3 | UI, touch, PWR push-to-talk, settings, images | see [`AGENTS.md`](AGENTS.md#boards-with-the-full-ui-by-hand) |
 | Guition JC3248W535 | UI, touch, settings, images, speaker; push-to-talk with an added I2S mic | `tools/muse/board.sh build jc3248w535` |
 | Waveshare ESP32-S3-Touch-LCD-7 | UI, touch, settings, images; no built-in audio | `tools/muse/board.sh build lcd7` |
