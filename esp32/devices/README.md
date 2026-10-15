@@ -74,20 +74,22 @@ are documented separately; this is not a generic ESP-VoCat profile.
 | --- | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |
 | Home-network tunnel | ✅ | — | — | — | ✅ | ✅ | ✅ | ✅ | Enabled (unverified) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — | Enabled |
 | Shows status on | Light | Light | Screen | Screen | Screen | E-paper | E-paper | E-paper | E-paper | Light ring | RGB LED | Avatar | Avatar | Avatar | Avatar | Avatar | Avatar | Avatar | Avatar | Avatar | Avatar | Avatar | Avatar | Avatar | Avatar | Avatar | Avatar | Light | Avatar | Avatar | Avatar | Avatar | Avatar | Avatar |
-| Images from Muse | — | — | ✅ | ✅ | ✅ | Black and white | Black and white | Six colours | Four grays (image delivery unverified) | — | — | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ | ✅ | — | Enabled |
+| Images from Muse | — | — | ✅ | ✅ | ✅ | Black and white | Black and white | Six colours | Four grays (checked on one unit) | — | — | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ | ✅ | — | Enabled |
 | UI and settings | — | — | — | — | — | — | — | — | Basic navigation checked | — | — | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | Experimental | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ | ✅ | Experimental | Experimental |
 | Push-to-talk | — | — | — | — | — | — | — | — | AI voice note checked; screen mic unverified | ✅ | XIAO BOOT | ✅ | ✅ | ✅ | ✅ | ✅ | Text replies | Text replies | ✅ | ✅ | ✅ | Text replies (experimental) | ✅ | ✅ | ✅ | ✅ | ✅ | — | With an added I2S mic | ✅ | — | — | Text replies (experimental) | Screen mic |
 | Speaker and mic | — | — | — | — | — | — | — | — | PDM voice note checked, no speaker | ✅ | 16 kHz I2S | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | Buzzer and mic | ES8311 (experimental) | ✅ | ✅ | ✅ | ✅ | ES8311 | — | Speaker (NS4168), no mic | ES8311, ES7210 | — | — | ES8311 (experimental) | ES8311 / ES7210 |
 | Air sensors | — | — | — | — | D1S, D1Pro | — | Temperature, humidity | Temperature, humidity | Temperature, humidity | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — |
 | Touch | — | — | — | — | — | — | — | — | GT911 (checked on one unit) | — | — | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ | — | — | — | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | — | ✅ | ✅ | — | ✅ |
-| Battery status | — | — | — | — | — | — | — | — | BQ27220 %/mV checked; charging unverified | — | — | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | Voltage only | — | — | ✅ | ✅ | ✅ | Voltage only | — | — | Percent only | — | Voltage only (unverified) | No charging state | Unverified |
-| Over-the-air updates | Off | Off | Off | Off | Off | Off | Off | Off | On (unverified) | Off | Off | On | On | On | On | On | On | On | On | On | On | Off | On | On | On | On | On | Off | On | On | On | On | Off | On |
+| Battery status | — | — | — | — | — | — | — | — | BQ27220 %/mV and charging checked | — | — | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | Voltage only | — | — | ✅ | ✅ | ✅ | Voltage only | — | — | Percent only | — | Voltage only (unverified) | No charging state | Unverified |
+| Over-the-air updates | Off | Off | Off | Off | Off | Off | Off | Off | On (checked on one unit) | Off | Off | On | On | On | On | On | On | On | On | On | On | Off | On | On | On | On | On | Off | On | On | On | On | Off | On |
 | Buttons | BOOT | BOOT | BOOT | BOOT | Top | BOOT | Green | Green | AI (talk/setup); Up/Down unwired | Centre (talk), dial | XIAO BOOT (talk/setup) | PWR (talk), BOOT | BOOT (talk), PWR | Hold face (talk), BOOT | BOOT, PWR (talk), KEY (talk) on top | Two | BOOT (talk), PWR | BOOT (talk), PWR | Wheel (press to talk, turn to sleep) | Front (talk), side (menu), PWR | Front (talk), side (menu), PWR | GO/Space (talk), Esc/Enter/arrows (menu) | BOOT/CONFIG (talk) | Blue top-right (talk), yellow top-left (speaker), red bottom-left (power) | PWR (talk), RST | Touch BtnB (talk), PWR | BOOT (talk) | BOOT | BOOT (talk) | BOOT (talk), Vol+/Vol- (menu) | BOOT (flash only) | Screen only | OK (talk), UP/DOWN (menu) | Touch; bottom power button |
 
 *Sticky entries describe an experimental Muse port, not Seeed's factory
-firmware. Display, touch, SHT40, battery values and Chinese voice replies have
-been checked on one unit; SD mounting, software power-off, charging-state
-accuracy and standby current still need validation.
+firmware. On one unit the display, touch, voice notes/CJK replies, SHT40,
+BQ27220 readings and charging indicator were checked. The contributor also
+confirms FAT SD hotplug, battery-only Power off/wake, Muse OTA and a standby
+current measurement. The measured value and conditions will be added when
+provided; factory-equivalent low-power behaviour is not claimed.
 
 *EchoEar-2ST entries describe the one measured unit, tested on hardware for
 pairing, touch, recording and playback, sleep and wake, and reconnect. See
@@ -150,14 +152,15 @@ file browser is provided. The SHT40 on
 I2C1 answers `sensors.read` with an uncalibrated 0 °C temperature offset.
 The profile uses 16 MB of the physical 32 MB flash. Muse's battery sleep and
 Wi-Fi nap are enabled, but the touch and SD rails remain powered: standby
-current is not expected to match the factory firmware. The Settings Power off
-action releases the power latch only when not connected to USB. On one unit,
-portrait UI and black/white polarity, left-swipe touch, accurate Sleep row
-selection and back navigation, stable idle display, SHT40 readings, battery
-percentage/voltage, sleep/wake, voice-note delivery and Chinese replies were
-checked. Saving a Sleep setting no longer reboots the device. SD mounting and
-hotplug, charging-state accuracy, software power-off, standby current and OTA
-still need hardware validation.
+behaviour is not factory-equivalent. Settings Power off releases the power
+latch only when USB is disconnected. On one unit, portrait UI and black/white
+polarity, left-swipe touch, accurate Sleep row selection and back navigation,
+stable idle display, SHT40 readings, battery percentage/voltage, sleep/wake,
+voice-note delivery and Chinese replies were checked; saving a Sleep setting
+no longer reboots the device. The contributor additionally confirms FAT SD
+mount/removal/reinsertion, charging-state indication, battery-only Power off
+and restart, Muse OTA and measurement of standby current. The numeric current
+value and measurement conditions will be recorded when supplied.
 Back up factory firmware and any device-specific data before flashing.
 
 The optional `reterminal-sticky-link` profile uses the same SSD1677 and SHT40
@@ -165,8 +168,9 @@ for a Link-only status screen with four-level grayscale images. It has no Muse
 settings, touch, microphone, battery gauge or SD mounting. Its separate build
 directory and overlay must not be reused for the full UI. On one unit, the
 Link status screen's orientation, black/white polarity and idle stability,
-SHT40 readings and Wi-Fi/VM connection were checked; grayscale image transfer,
-pairing and OTA are still unverified. Switching between the two profiles with
+SHT40 readings and Wi-Fi/VM connection were checked. The contributor also
+confirms four-level grayscale image delivery and Link pairing. Link OTA was
+not separately confirmed. Switching between the two profiles with
 a full flash writes different partition layouts and can lose saved settings or
 pairing data; back up the device before switching.
 
