@@ -141,6 +141,8 @@ idf.py -p /dev/cu.usbmodem1101 flash monitor
 | Waveshare ESP32-S3-1.54inch-ePaper V2 | 1.54 英寸电子纸显示状态，黑白 | `tools/board.sh waveshare-s3-epaper-154 build` |
 | Seeed reTerminal E1001 | 7.5 英寸电子纸显示状态，黑白图片 | `tools/board.sh reterminal-e1001 build` |
 | Seeed reTerminal E1002 | 7.3 英寸电子纸显示状态，六色图片 | `tools/board.sh reterminal-e1002 build` |
+| Seeed reTerminal Sticky（实验性） | 3.97 英寸竖屏电子纸界面、触摸、PDM 语音输入、电池、SD 卡和 SHT40 | `tools/board.sh reterminal-sticky build` |
+| Seeed reTerminal Sticky Link 状态屏（实验性） | 电子纸状态画面和 SHT40，无完整 Muse 界面 | `tools/board.sh reterminal-sticky-link build` |
 | Home Assistant Voice Preview Edition | LED 灯环显示状态，按住说话，音量旋钮 | `tools/board.sh home-assistant-voice build` |
 | Seeed reSpeaker Lite with XIAO ESP32-S3 (experimental) | 单颗 RGB LED，BOOT 按住说话；需要 16 kHz 的 XMOS I2S | [设置](devices/seeed-respeaker-lite.md) |
 | Waveshare ESP32-S3-Touch-AMOLED-1.75C | 界面、按住说话、设置、图片 | 见 [`AGENTS.md`](AGENTS.md#boards-with-the-full-ui-by-hand) |
@@ -158,6 +160,7 @@ idf.py -p /dev/cu.usbmodem1101 flash monitor
 | M5Stack CoreS3 | 界面、触摸、PWR 按住说话、设置、图片 | 见 [`AGENTS.md`](AGENTS.md#boards-with-the-full-ui-by-hand) |
 | Guition JC3248W535 | 界面、触摸、设置、图片、扬声器；外接 I2S 麦克风后可按住说话 | `tools/muse/board.sh build jc3248w535` |
 | Waveshare ESP32-S3-Touch-LCD-7 | 界面、触摸、设置、图片；没有内置音频 | `tools/muse/board.sh build lcd7` |
+| Waveshare ESP32-S3-Touch-LCD-1.28 | 界面、触摸、设置、图片；没有内置音频 | `tools/muse/board.sh build lcd128` |
 | M5Stack StickC Plus2 | 界面、按住说话、双键菜单、图片 | 见 [`AGENTS.md`](AGENTS.md#boards-with-the-full-ui-by-hand) |
 | M5Stack Core2 (v1.0) | 界面、触摸条上按住说话、触摸菜单、图片 | `tools/muse/board.sh build core2` |
 | Freenove FNK0104B | 界面、触摸、BOOT 按住说话、设置、图片 | `tools/muse/board.sh build fnk0104b` |
