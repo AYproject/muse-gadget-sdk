@@ -39,6 +39,10 @@ menu "Muse"
             bool "OSTB EchoEar-2ST (360px round touch LCD, experimental)"
             depends on IDF_TARGET_ESP32S3
 
+        config MUSE_BOARD_RETERMINAL_STICKY
+            bool "Seeed reTerminal Sticky (480x800 touch e-paper, experimental)"
+            depends on IDF_TARGET_ESP32S3
+
         config MUSE_BOARD_WAVESHARE_S3_216
             bool "Waveshare ESP32-S3-Touch-AMOLED-2.16"
             depends on IDF_TARGET_ESP32S3
@@ -87,6 +91,18 @@ menu "Muse"
             bool "M5Stack StopWatch (ESP32-S3, round touch AMOLED)"
             depends on IDF_TARGET_ESP32S3
 
+        config MUSE_BOARD_SEEED_XIAO_AMOLED_205
+            bool "Seeed XIAO AMOLED Display, 2.05\" 368x448 module (experimental)"
+            depends on IDF_TARGET_ESP32S3
+
+        config MUSE_BOARD_SEEED_XIAO_AMOLED_175
+            bool "Seeed XIAO AMOLED Display, 1.75\" 466x466 round module (experimental)"
+            depends on IDF_TARGET_ESP32S3
+
+        config MUSE_BOARD_SEEED_XIAO_AMOLED_216
+            bool "Seeed XIAO AMOLED Display, 2.16\" 480x480 square module (experimental)"
+            depends on IDF_TARGET_ESP32S3
+
         config MUSE_BOARD_M5STACK_CORES3
             bool "M5Stack CoreS3 (ESP32-S3, 320x240 touch LCD, speaker and microphones)"
             depends on IDF_TARGET_ESP32S3
@@ -126,6 +142,7 @@ menu "Muse"
         default "waveshare_s3_175c" if MUSE_BOARD_WAVESHARE_S3_175C
         default "waveshare_s3_175" if MUSE_BOARD_WAVESHARE_S3_175
         default "ostb_echoear_2st" if MUSE_BOARD_OSTB_ECHOEAR_2ST
+        default "reterminal_sticky" if MUSE_BOARD_RETERMINAL_STICKY
         default "waveshare_s3_216" if MUSE_BOARD_WAVESHARE_S3_216
         default "waveshare_s3_185c" if MUSE_BOARD_WAVESHARE_S3_185C
         default "esp_mosaico" if MUSE_BOARD_ESP_MOSAICO
@@ -138,6 +155,9 @@ menu "Muse"
         default "m5stack_stickc_plus2" if MUSE_BOARD_M5STACK_STICKC_PLUS2
         default "m5stack_cardputer_adv" if MUSE_BOARD_M5STACK_CARDPUTER_ADV
         default "m5stack_stopwatch" if MUSE_BOARD_M5STACK_STOPWATCH
+        default "seeed_xiao_amoled_205" if MUSE_BOARD_SEEED_XIAO_AMOLED_205
+        default "seeed_xiao_amoled_175" if MUSE_BOARD_SEEED_XIAO_AMOLED_175
+        default "seeed_xiao_amoled_216" if MUSE_BOARD_SEEED_XIAO_AMOLED_216
         default "m5stack_cores3" if MUSE_BOARD_M5STACK_CORES3
         default "m5stack_core2" if MUSE_BOARD_M5STACK_CORE2
         default "fnk0104b" if MUSE_BOARD_FNK0104B
