@@ -73,6 +73,14 @@ static inline void muse_chat_reject(muse_chat_rejected_t *rejected, const char *
 #define MUSE_HATCH_NOTE_HEAD \
     "{\"message\":\"\",\"output_modality\":\"text\",\"items\":[{\"type\":\"file\"," \
     "\"mime_type\":\"audio/wav\",\"filename\":\"voice_note.wav\",\"data_base64\":\""
+/* Agent Plan-enabled devices speak reply text themselves. Include this
+ * context with the recording so a request for speech stays on that path. */
+#define MUSE_HATCH_TTS_NOTE_HEAD \
+    "{\"message\":\"Please answer the attached recording in plain text. This device " \
+    "automatically reads your reply aloud. If the recording asks for a voice reply, " \
+    "return the words to be spoken as text; do not send an audio attachment.\"," \
+    "\"output_modality\":\"text\",\"items\":[{\"type\":\"file\",\"mime_type\":\"audio/wav\"," \
+    "\"filename\":\"voice_note.wav\",\"data_base64\":\""
 #define MUSE_HATCH_NOTE_TAIL "\"}]}"
 #define MUSE_HATCH_WAV_HEADER 44
 

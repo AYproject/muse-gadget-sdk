@@ -809,6 +809,8 @@ static void serial_task(void *arg)
             char *line = heap_caps_malloc(SERIAL_LINE, MUSE_BIG_CAPS);
             char none[1];   /* no room: the line is read and dropped */
             bool whole = read_line(line ? line : none, line ? SERIAL_LINE : sizeof(none));
+            /* Never persist a truncated credential or other setup value. */
+            if (line && !whole && !strncmp(line, "tts.", 4)) { free(line); continue; }
             if (line && !console_command(line, whole)) {
                 muse_ble_command(line);
             }

@@ -32,6 +32,9 @@
 #include "muse_state.h"
 #include "muse_voice.h"
 #include "muse_wifi.h"
+#if CONFIG_MUSE_VOLC_TTS
+#include "muse_tts.h"
+#endif
 
 static const char *TAG = "muse_ble";
 
@@ -75,6 +78,13 @@ static void json_str(char *out, size_t len, const char *s)
 
 static int build_status(char *out, size_t len)
 {
+#if CONFIG_MUSE_VOLC_TTS
+    char tts[128];
+    snprintf(tts, sizeof(tts), "{\"supported\":true,\"configured\":%s,\"transport\":\"http\",\"reply_text\":%s}",
+             muse_tts_configured() ? "true" : "false", muse_tts_reply_text() ? "true" : "false");
+#else
+    const char *tts = "{\"supported\":false,\"configured\":false}";
+#endif
     muse_wifi_status_t w;
     muse_wifi_status(&w);
     muse_hatch_status_t h;
@@ -95,11 +105,13 @@ static int build_status(char *out, size_t len)
                     "\"wifi\":{\"on\":%s,\"state\":\"%s\",\"ssid\":\"%s\",\"ip\":\"%s\",\"rssi\":%d},"
                     "\"hatch\":{\"host\":\"%s\",\"vm\":\"%s\",\"token\":%s,\"state\":\"%s\"},"
                     "\"link\":{\"paired\":%s,\"state\":\"%s\"},"
+                    "\"tts\":%s,"
                     "\"volume\":%d,\"speaker\":%s,\"mic_gain\":%d,\"brightness\":%d,\"sleep\":%d,\"last\":\"%s\"}",
                     s_name, esp_app_get_description()->version, p.battery_pct,
                     muse_settings_wifi_on() ? "true" : "false", wifi_state_name(w.state), ssid_e, w.ip, w.rssi,
                     host_e, vm_e, muse_settings_hatch_token_len() ? "true" : "false", muse_hatch_state_name(h.state),
                     muse_link_hatch_linked() ? "true" : "false", muse_link_state_name(muse_link_state()),
+                    tts,
                     muse_settings_volume(), muse_settings_speaker_on() ? "true" : "false",
                     muse_settings_mic_gain(), muse_settings_brightness(),
                     muse_settings_sleep_s(), last_e);
@@ -159,6 +171,15 @@ static void run_command(char *cmd)
         }
     } else if (!strcmp(cmd, "hatch.test")) {
         muse_hatch_test();
+#if CONFIG_MUSE_VOLC_TTS
+    } else if (!strcmp(cmd, "tts.key")) {
+        if (muse_tts_set_key(v) != ESP_OK) res = "error: invalid key or save failed";
+    } else if (!strcmp(cmd, "tts.speaker")) {
+        if (muse_tts_set_speaker(v) != ESP_OK) res = "error: invalid voice or save failed";
+    } else if (!strcmp(cmd, "tts.reply_text")) {
+        if ((strcmp(v, "0") && strcmp(v, "1")) || muse_tts_set_reply_text(v[0] == '1') != ESP_OK)
+            res = "error: invalid mode or save failed";
+#endif
     } else if (!strcmp(cmd, "test.loopback")) {
         muse_voice_request_loopback();
     } else if (!strcmp(cmd, "volume") && parse_int(v, 0, 100, &n)) {
@@ -176,7 +197,7 @@ static void run_command(char *cmd)
     }
 
     /* Never echo secrets back. */
-    bool secret = !strcmp(cmd, "wifi.pass") || !strncmp(cmd, "hatch.token", 11);
+    bool secret = !strcmp(cmd, "wifi.pass") || !strncmp(cmd, "hatch.token", 11) || !strncmp(cmd, "tts.", 4);
     snprintf(s_last, sizeof(s_last), "%s: %s", cmd, res);
     ESP_LOGI(TAG, "cmd %s%s%s -> %s", cmd, secret ? "" : "=", secret ? "" : v, res);
     muse_state_poke();

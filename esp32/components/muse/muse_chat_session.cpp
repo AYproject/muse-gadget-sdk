@@ -70,6 +70,10 @@ extern "C" {
 #include "muse_link.h"
 #include "muse_settings.h"
 #include "muse_wifi.h"
+#if CONFIG_MUSE_VOLC_TTS
+#include "muse_tts.h"
+#include "muse_reply_media.h"
+#endif
 }
 #include "muse_chat_priv.h"
 
@@ -105,7 +109,11 @@ static const char *TAG = "muse_chat_session";
 #define MP3_POLL_ROOM (SCRATCH + 8192)     /* stop reading the socket below this much MP3 room */
 static_assert(MP3_BUF > MP3_POLL_ROOM + MP3_HOLD, "reads would stall with the MP3 buffer empty");
 #define EV_TEXT 72
+#if CONFIG_MUSE_VOLC_TTS
+#define TEXT_MAX MUSE_TTS_TEXT_MAX
+#else
 #define TEXT_MAX 1024                      /* a message's text, for captions timed to its speech */
+#endif
 #define SPEECH_CHARS_PER_S 14              /* until the speech's length is known */
 #define TEXT_CHARS_PER_S 16                /* speaker off: reading pace, a little over speech */
 #define TEXT_HOLD_S 2                      /* speaker off: how long a message's last lines stay up */
@@ -209,6 +217,10 @@ struct msg_t {
     tts_t tts;
     uint32_t pcm_start;      /* where its speech starts in the reply audio */
     uint32_t pcm_frames;     /* how long it is; 0 until the MP3 has all arrived */
+#if CONFIG_MUSE_VOLC_TTS
+    char *media;             /* PSRAM copy of original MP3 variant, freed per turn */
+    bool media_https;
+#endif
 };
 
 struct resampler_t {
@@ -251,6 +263,11 @@ struct turn_t {
     resampler_t down;
     int kbps;
     int down_rate;
+#if CONFIG_MUSE_VOLC_TTS
+    uint32_t tts_ticket;
+    int64_t tts_started_us;
+    bool tts_failed;
+#endif
 };
 
 /* 10 KB, most of it the MP3 decoder: in PSRAM on boards that let static data go
@@ -679,7 +696,7 @@ static int64_t open_stream(kind_t kind, const char *verb, const char *path, cons
     }
     char req_id[40];
     snprintf(req_id, sizeof(req_id), "muse-%08lx-%08lx", (unsigned long)esp_random(), (unsigned long)esp_random());
-    HeaderView hdrs[4];
+    HeaderView hdrs[5];
     size_t nh = 0;
     hdrs[nh++] = { StringView("x-request-id"), StringView(req_id) };
     hdrs[nh++] = { StringView("x-app-id"), StringView("hatch-web") };
@@ -689,6 +706,16 @@ static int64_t open_stream(kind_t kind, const char *verb, const char *path, cons
     if (accept) {
         hdrs[nh++] = { StringView("accept"), StringView(accept) };
     }
+#if CONFIG_MUSE_VOLC_TTS
+    char *authorization = nullptr;
+    if (kind == K_TTS && s_vm.vm_token && s_vm.vm_token[0]) {
+        size_t cap = strlen(s_vm.vm_token) + 8;
+        authorization = static_cast<char *>(psram_alloc(cap));
+        if (!authorization) return 0;
+        snprintf(authorization, cap, "Bearer %s", s_vm.vm_token);
+        hdrs[nh++] = { StringView("Authorization"), StringView(authorization) };
+    }
+#endif
     int64_t id = s_conn.next_id++;
     ApplicationRequestView req;
     req.verb = StringView(verb);
@@ -700,10 +727,17 @@ static int64_t open_stream(kind_t kind, const char *verb, const char *path, cons
                                                              ByteSpan(s_conn.svc, SCRATCH),
                                                              ByteSpan(s_conn.env, SCRATCH));
     if (!r.ok()) {
-        ESP_LOGE(TAG, "%s %s: %s", verb, path, r.status().str());
+#if CONFIG_MUSE_VOLC_TTS
+        free(authorization);
+#endif
+        ESP_LOGE(TAG, "%s %s: %s", verb, kind == K_TTS ? "[reply audio]" : path, r.status().str());
         return 0;
     }
-    if (!flush_outbound(&s_conn)) {
+    bool flushed = flush_outbound(&s_conn);
+#if CONFIG_MUSE_VOLC_TTS
+    free(authorization);
+#endif
+    if (!flushed) {
         return 0;
     }
     slot->id = id;
@@ -712,7 +746,7 @@ static int64_t open_stream(kind_t kind, const char *verb, const char *path, cons
     slot->msg = -1;
     slot->len = 0;
     slot->overflow = false;
-    ESP_LOGI(TAG, "stream %lld: %s %s", (long long)id, verb, path);
+    ESP_LOGI(TAG, "stream %lld: %s %s", (long long)id, verb, kind == K_TTS ? "[reply audio]" : path);
     return id;
 }
 
@@ -960,6 +994,11 @@ static void turn_reset_streams(void)
 
 static void turn_finish(void)
 {
+#if CONFIG_MUSE_VOLC_TTS
+    muse_tts_cancel(s_turn.tts_ticket);
+    s_turn.tts_ticket = 0;
+    for (auto &m : s_turn.msgs) { free(m.media); m.media = nullptr; }
+#endif
     turn_reset_streams();
     s_turn.phase = P_IDLE;
     s_turn.dict_id = s_turn.chat_id = 0;
@@ -1126,8 +1165,12 @@ static bool open_note(void)
     if (!s_turn.chat_id) {
         return false;
     }
-    s_turn.body_sent = sizeof(MUSE_HATCH_NOTE_HEAD) - 1;
-    if (!send_body(s_turn.chat_id, reinterpret_cast<const uint8_t *>(MUSE_HATCH_NOTE_HEAD), sizeof(MUSE_HATCH_NOTE_HEAD) - 1, false)) {
+    const char *head = MUSE_HATCH_NOTE_HEAD;
+#if CONFIG_MUSE_VOLC_TTS
+    if (muse_tts_configured() && muse_tts_reply_text()) head = MUSE_HATCH_TTS_NOTE_HEAD;
+#endif
+    s_turn.body_sent = strlen(head);
+    if (!send_body(s_turn.chat_id, reinterpret_cast<const uint8_t *>(head), strlen(head), false)) {
         return false;
     }
     muse_hatch_wav_header(s_turn.note, MIC_RATE);
@@ -1339,7 +1382,14 @@ static void append_text(msg_t &m, const char *text)
         if (!m.len) {
             full[0] = '\0';
         }
+#if CONFIG_MUSE_VOLC_TTS
+        size_t have = strlen(full);
+        size_t copy = muse_tts_utf8_prefix(text, TEXT_MAX - have - 1);
+        memcpy(full + have, text, copy);
+        full[have + copy] = '\0';
+#else
         strlcat(full, text, TEXT_MAX);
+#endif
     }
     m.len += add;
     size_t have = strlen(m.tail);
@@ -1428,11 +1478,38 @@ static void on_event(cJSON *line)
         }
         s_last_seq = v > s_last_seq ? v : s_last_seq;
     }
-    if (s_turn.phase != P_WAIT_REPLY) {
-        return;
-    }
     const char *event = cJSON_GetStringValue(cJSON_GetObjectItem(line, "event")) ?: "";
     cJSON *payload = cJSON_GetObjectItem(line, "payload");
+    if (s_turn.phase != P_WAIT_REPLY) return;
+
+#if CONFIG_MUSE_VOLC_TTS
+    if (!strcmp(event, "delta.presentation")) {
+        muse_reply_audio_t audio;
+        if (!muse_reply_audio(payload, &audio)) {
+            if (!strcmp(cJSON_GetStringValue(cJSON_GetObjectItem(payload, "kind")) ?: "", "audio"))
+                ESP_LOGW(TAG, "native audio presentation has unsupported format or source");
+            return;
+        }
+        const char *id = msg_id(payload, line);
+        int i = id ? bind_msg(id, payload) : -1;
+        if (i < 0) return;
+        msg_t &m = s_turn.msgs[i];
+        /* Late/repeated presentations must not replay a message already spoken. */
+        if (m.media || m.tts == TTS_ACTIVE || m.tts == TTS_FINISHED) return;
+        const char *vm_path = muse_reply_vm_path(audio.source, s_vm.vm_id);
+        const char *original = vm_path ?: audio.source;
+        char *source = static_cast<char *>(psram_alloc(strlen(original) + 1));
+        if (!source) return;
+        strcpy(source, original);
+        m.media = source;
+        m.media_https = audio.https && !vm_path;
+        s_turn.last_event_us = s_turn.last_content_us = now_us();
+        message_done(i, audio.caption ?: "VOICE REPLY");
+        if (!s_turn.text) m.tts = TTS_QUEUED;
+        ESP_LOGI(TAG, "native audio presentation queued (%s MP3)", m.media_https ? "HTTPS" : "Noise");
+        return;
+    }
+#endif
 
     if (!strcmp(event, "agent.status") || !strcmp(event, "task.status")) {
         const char *code = cJSON_GetStringValue(cJSON_GetObjectItem(payload, "activity_code"));
@@ -1508,6 +1585,20 @@ static void on_chat_ack(stream_t *s)
 
 /* ---- Turn: speech ---- */
 
+static void show_silently(int i)
+{
+    msg_t &m = s_turn.msgs[i];
+    m.pcm_start = s_turn.pcm_out;
+    m.pcm_frames = (uint32_t)(m.len * MIC_RATE / TEXT_CHARS_PER_S);
+    m.tts = TTS_ACTIVE;
+    s_turn.tts_msg = i;
+    s_turn.silent = true;
+    s_turn.mp3_len = 0;
+    s_turn.mp3_ended = false;
+    ESP_LOGI(TAG, "showing message %s (%u chars)", m.id, (unsigned)m.len);
+    show_reply_start(m);
+}
+
 static void start_tts(void)
 {
     if (s_turn.tts_msg >= 0) {
@@ -1518,6 +1609,38 @@ static void start_tts(void)
         if (m.tts != TTS_QUEUED) {
             continue;
         }
+#if CONFIG_MUSE_VOLC_TTS
+        const char *text = s_turn.texts ? s_turn.texts + i * TEXT_MAX : nullptr;
+        if (muse_settings_speaker_on() && (m.media || (muse_tts_configured() && text && text[0]))) {
+            uint32_t ticket = 0;
+            int64_t native = 0;
+            if (m.media) {
+                if (m.media_https) ticket = muse_reply_fetch_begin(m.media);
+                else native = open_stream(K_TTS, "GET", m.media, nullptr, "audio/mpeg", nullptr, true);
+            } else {
+                ticket = muse_tts_begin(text);
+            }
+            if (ticket || native) {
+                if (native) find_stream(native)->msg = i;
+                m.pcm_start = s_turn.pcm_out;
+                m.pcm_frames = 0;
+                m.tts = TTS_ACTIVE;
+                s_turn.tts_msg = i;
+                s_turn.silent = false;
+                s_turn.mp3_len = 0;
+                s_turn.mp3_ended = false;
+                s_turn.kbps = s_turn.down_rate = 0;
+                s_turn.tts_ticket = ticket;
+                s_turn.tts_started_us = now_us();
+                s_turn.tts_failed = false;
+                mp3dec_init(&s_turn.dec);
+                mark(M_TTS);
+                ESP_LOGI(TAG, "%s for message %s", m.media ? "fetching native Muse audio" : "requesting Agent Plan speech", m.id);
+                return;
+            }
+            ESP_LOGW(TAG, "speech worker unavailable; showing reply");
+        }
+#endif
         /*
          * Replies are text, shown at reading pace: silence in place of speech
          * paces the captions and ends the turn. To speak them instead, send
@@ -1533,16 +1656,38 @@ static void start_tts(void)
          * end. decode() plays it at the speaker's volume, captions following,
          * and finishes the message once it's drained.
          */
-        m.pcm_start = s_turn.pcm_out;
-        m.pcm_frames = (uint32_t)(m.len * MIC_RATE / TEXT_CHARS_PER_S);
-        m.tts = TTS_ACTIVE;
-        s_turn.tts_msg = i;
-        s_turn.silent = true;
-        ESP_LOGI(TAG, "showing message %s (%u chars)", m.id, (unsigned)m.len);
-        show_reply_start(m);
+        show_silently(i);
         return;
     }
 }
+
+#if CONFIG_MUSE_VOLC_TTS
+static void pump_tts(void)
+{
+    if (s_turn.tts_msg < 0 || s_turn.silent || s_turn.mp3_ended) return;
+    if (!muse_settings_speaker_on() ||
+        (!s_turn.down_rate && now_us() - s_turn.tts_started_us > 15 * 1000000LL)) {
+        muse_tts_cancel(s_turn.tts_ticket);
+        s_turn.tts_ticket = 0;
+        for (auto &stream : s_streams) if (stream.kind == K_TTS) send_reset(stream.id);
+        ESP_LOGW(TAG, "speech muted or timed out; showing reply");
+        show_silently(s_turn.tts_msg);
+        return;
+    }
+    if (!s_turn.tts_ticket) return;   /* native relative URL arrives on Noise */
+    size_t room = MP3_BUF - s_turn.mp3_len;
+    if (!room) return;
+    if (room > 8192) room = 8192;
+    size_t n = muse_tts_read(s_turn.tts_ticket, s_turn.mp3 + s_turn.mp3_len, room);
+    s_turn.mp3_len += n;
+    if (n) { mark(M_MP3); return; }
+    muse_tts_state_t state = muse_tts_state(s_turn.tts_ticket);
+    if (state != MUSE_TTS_WAITING) {
+        s_turn.mp3_ended = true;
+        s_turn.tts_failed = state == MUSE_TTS_FAILED;
+    }
+}
+#endif
 
 static void tts_data(const uint8_t *data, size_t len)
 {
@@ -1565,8 +1710,13 @@ static void tts_end(stream_t *s, bool ok)
     if (ok) {
         s_turn.mp3_ended = true;   /* decode() drains the rest, then finishes */
     } else {
+#if CONFIG_MUSE_VOLC_TTS
+        s_turn.mp3_ended = true;
+        s_turn.tts_failed = true;
+#else
         s_turn.msgs[i].tts = TTS_FINISHED;
         s_turn.tts_msg = -1;
+#endif
     }
 }
 
@@ -1648,6 +1798,16 @@ static void decode(void)
         m.pcm_frames = s_turn.pcm_out - m.pcm_start + rest;
     }
     if (s_turn.mp3_ended && !s_turn.mp3_len) {
+#if CONFIG_MUSE_VOLC_TTS
+        /* Auth failures, invalid MP3 and truncated streams keep captions usable. */
+        if (!s_turn.down_rate || s_turn.tts_failed) {
+            muse_tts_cancel(s_turn.tts_ticket);
+            s_turn.tts_ticket = 0;
+            show_silently(s_turn.tts_msg);
+            return;
+        }
+        s_turn.tts_ticket = 0;
+#endif
         m.pcm_frames = s_turn.pcm_out - m.pcm_start;
         m.tts = TTS_FINISHED;
         s_turn.tts_msg = -1;
@@ -1800,6 +1960,10 @@ static bool stream_end(stream_t *s, bool ok)
 
 static bool on_http_error(stream_t *s, const ApplicationResponseView &resp)
 {
+    if (s->kind == K_TTS) {
+        ESP_LOGW(TAG, "native audio HTTP %d", (int)resp.status);
+        return stream_end(s, false);
+    }
     char body[160];
     size_t n = resp.body.size() < sizeof(body) - 1 ? resp.body.size() : sizeof(body) - 1;
     memcpy(body, resp.body.data(), n);
@@ -1817,8 +1981,13 @@ static bool on_frame(const DecodedServiceFrame &f)
     switch (f.kind) {
     case ServiceFrameKind::Response:
         s->status = f.response.status;
+        if (s->kind == K_TTS) ESP_LOGI(TAG, "native audio response HTTP %d", (int)f.response.status);
         if (f.response.status >= 400) {
             return on_http_error(s, f.response);
+        }
+        if (s->kind == K_TTS && f.response.status != 200) {
+            ESP_LOGW(TAG, "native audio HTTP %d", (int)f.response.status);
+            return stream_end(s, false);
         }
         stream_data(s, f.response.body);
         if (f.response.end_body && alive(s, f.stream_id)) {
@@ -1832,8 +2001,8 @@ static bool on_frame(const DecodedServiceFrame &f)
         }
         break;
     case ServiceFrameKind::Reset:
-        ESP_LOGW(TAG, "stream %lld reset: %.*s", (long long)f.stream_id, (int)f.reset.reason.size(),
-                 f.reset.reason.data());
+        if (s->kind == K_TTS) ESP_LOGW(TAG, "native audio stream reset");
+        else ESP_LOGW(TAG, "stream %lld reset: %.*s", (long long)f.stream_id, (int)f.reset.reason.size(), f.reset.reason.data());
         return stream_end(s, false);
     default:
         break;
@@ -1847,7 +2016,11 @@ static bool poll_socket(void)
     static HeaderView hdrs[16];
     for (int budget = 0; budget < 8; budget++) {
         /* Hold off while the MP3 buffer is nearly full: TCP pushes back on the VM. */
-        if (s_turn.tts_msg >= 0 && MP3_BUF - s_turn.mp3_len < MP3_POLL_ROOM) {
+        if (s_turn.tts_msg >= 0 && MP3_BUF - s_turn.mp3_len < MP3_POLL_ROOM
+#if CONFIG_MUSE_VOLC_TTS
+            && !s_turn.tts_ticket
+#endif
+        ) {
             return true;
         }
         ssize_t n = ws_recv(s_conn.tls, s_conn.rx, SCRATCH, false);
@@ -1997,6 +2170,9 @@ static void hatch_task(void *arg)
         }
         if (s_turn.phase == P_WAIT_REPLY) {
             start_tts();
+#if CONFIG_MUSE_VOLC_TTS
+            pump_tts();
+#endif
             decode();
         }
         if (!s_connected) {

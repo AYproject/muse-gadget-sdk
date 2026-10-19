@@ -180,6 +180,7 @@ status screen.
 
 | Board | What you get | Build it |
 |---|---|---|
+| [Seeed XIAO ESP32-S3 1.47 Touch Display](devices/seeed-xiao-s3-147.md) | 172×320 touch UI, PDM mic, USR1/USR2; external MAX98357A speaker | `tools/muse/board.sh build xiao147` |
 | ESP32-C5 DevKitC-1 | Status light and button | `idf.py build` |
 | ESP32-C6 devkit without PSRAM | Status light and button | `tools/board.sh c6-nopsram build` |
 | Espressif ESP32-S3-DevKitC-1 | Status light and button | `tools/board.sh espressif-s3-devkitc-1 build` |
@@ -229,6 +230,23 @@ Boards that support images can show pictures Muse sends them:
 Boards without PSRAM, like the classic ESP32 and the ESP32-C6, run without the
 home-network tunnel, which needs more memory than they have. Muse can still
 reach the device and control it.
+
+### Seeed XIAO 1.47" IPS Touch Display (ESP32-S3)
+
+The [XIAO 1.47" IPS Touch Display](https://www.seeedstudio.com/1-47-Inch-Touch-Display-Powered-by-XIAO-ESP32-S3-Plus-p-6996.html)
+is a compact Seeed Studio display gadget powered by the XIAO ESP32-S3 Plus.
+It combines a 172×320 capacitive touch screen, PDM microphone and two user
+buttons with 16 MB flash, 8 MB PSRAM, Wi-Fi and Bluetooth LE. The integrated
+screen and microphone make it a small Muse companion without a separate
+display or microphone module.
+
+This port supports the avatar, touch settings, USR1 push-to-talk, Chinese
+captions and USR2 screen sleep/wake. Add a MAX98357A on D11/D12/D13 for sound
+effects and optional Agent Plan TTS replies; each user provisions their own
+key locally over USB. The board has no built-in speaker. IMU, MicroSD and
+battery telemetry are not integrated. See the [product overview, wiring and
+setup guide](devices/seeed-xiao-s3-147.md), or the
+[中文 Demo README](devices/seeed-xiao-s3-147.zh-CN.md).
 
 ## Power characterization
 

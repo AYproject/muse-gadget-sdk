@@ -21,6 +21,13 @@ build/
 # Interactive simulator screenshot.
 muse-simulator.ppm
 
+# Private XIAO provisioning files and device flash backups.
+/.sdk-token
+/.wifi-config.json
+/.tts-config.json
+/backups/
+/.tools/
+
 # Local gadget provisioning and original-device flash backups.
 .sdk-token
 /backups/

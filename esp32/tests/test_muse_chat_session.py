@@ -36,9 +36,15 @@ class ChatSession(unittest.TestCase):
 #include "cJSON.h"
 #include "minimp3.h"
 #include "muse_chat_priv.h"
+#include "muse_tts_protocol.h"
+#include "muse_reply_media.h"
 #define ESP_LOGI(...) ((void)0)
+#define ESP_LOGW(...) ((void)0)
 ''' + constants + types + r'''
 static turn_t s_turn;
+#if CONFIG_MUSE_VOLC_TTS
+static struct { char vm_id[128]; } s_vm;
+#endif
 static char s_reply_shown[EV_TEXT];
 static int64_t s_last_seq, s_marks[4];
 static int captions, console_events;
@@ -53,7 +59,15 @@ void muse_hatch_tail_words(const char *text, char *out, size_t cap) { strlcpy(ou
 bool muse_hatch_caption_at(const char *text, size_t, char *out, size_t cap) {
     strlcpy(out, text, cap); return text[0];
 }
-static void turn_finish() { s_turn.phase = P_IDLE; }
+static void turn_finish() {
+#if CONFIG_MUSE_VOLC_TTS
+    for (auto &m : s_turn.msgs) { free(m.media); m.media = nullptr; }
+#endif
+    s_turn.phase = P_IDLE;
+}
+#if CONFIG_MUSE_VOLC_TTS
+static void *psram_alloc(size_t n) { return malloc(n); }
+#endif
 static void turn_fail(const char *) { turn_finish(); }
 static bool ensure_connected() { return true; }
 bool muse_hatch_configured() { return true; }
@@ -128,12 +142,48 @@ static void bounded_rejections() {
     event("message.assistant", "second", "note", "Second");
     assert(s_turn.nmsgs == 2 && s_turn.msgs[0].done && s_turn.msgs[1].done);
 }
+#if CONFIG_MUSE_VOLC_TTS
+static void presentation() {
+    s_turn.texts = static_cast<char *>(calloc(MAX_MSGS, TEXT_MAX));
+    assert(s_turn.texts);
+    begin();
+    const char *json = R"({"type":"event","event":"delta.presentation","payload":{
+      "message_id":"voice-reply","reply_to_message_id":"note","kind":"audio",
+      "data":{"audio":{"mime":"audio/mpeg","missing":false,
+        "path":"/mnt/data/example.mp3","variants":{"original":"/api/media/example?variant=original"}},
+        "fallback_text":"Speech caption"}}})";
+    cJSON *root = cJSON_Parse(json);
+    assert(root);
+    on_event(root); on_event(root);
+    cJSON_Delete(root);
+    assert(s_turn.nmsgs == 1 && s_turn.msgs[0].done);
+    assert(s_turn.msgs[0].tts == TTS_QUEUED);
+    assert(!strcmp(s_turn.msgs[0].media, "/api/media/example?variant=original"));
+    assert(!s_turn.msgs[0].media_https);
+    assert(!strcmp(s_turn.texts, "Speech caption"));
+    /* A presentation referring to another user's message must stay rejected. */
+    root = cJSON_Parse(json);
+    cJSON *payload = cJSON_GetObjectItem(root, "payload");
+    cJSON_SetValuestring(cJSON_GetObjectItem(payload, "message_id"), "other-reply");
+    cJSON_SetValuestring(cJSON_GetObjectItem(payload, "reply_to_message_id"), "elsewhere");
+    on_event(root);
+    assert(s_turn.nmsgs == 1);
+    cJSON_Delete(root);
+    turn_finish();
+    root = cJSON_Parse(json); on_event(root); cJSON_Delete(root);
+    assert(!s_turn.msgs[0].media); /* no retained URL after turn/cancel */
+    free(s_turn.texts); s_turn.texts = nullptr;
+}
+#endif
 int main(int argc, char **argv) {
     assert(argc == 2);
     switch (atoi(argv[1])) {
     case 0: rejected_deltas(); break;
     case 1: valid_parents(); break;
     case 2: bounded_rejections(); break;
+#if CONFIG_MUSE_VOLC_TTS
+    case 3: presentation(); break;
+#endif
     default: return 2;
     }
 }
@@ -145,18 +195,29 @@ int main(int argc, char **argv) {
         commands = [
             [*shlex.split(os.environ.get('CC', 'cc')), '-std=c11', *flags,
              '-c', str(JSON / 'cJSON.c'), '-o', str(out / 'cjson.o')],
-            [*shlex.split(os.environ.get('CXX', 'c++')), '-std=gnu++17', *flags,
-             str(out / 'session.cpp'), str(out / 'cjson.o'), '-o', str(out / 'session')],
+            [*shlex.split(os.environ.get('CC', 'cc')), '-std=c11', *flags,
+             '-c', str(ROOT / 'components/muse/muse_tts_protocol.c'), '-o', str(out / 'tts.o')],
+            [*shlex.split(os.environ.get('CC', 'cc')), '-std=c11', *flags,
+             '-c', str(ROOT / 'components/muse/muse_reply_media.c'), '-o', str(out / 'media.o')],
         ]
+        for enabled in (0, 1):
+            commands.append([*shlex.split(os.environ.get('CXX', 'c++')), '-std=gnu++17', *flags,
+                f'-DCONFIG_MUSE_VOLC_TTS={enabled}',
+                str(out / 'session.cpp'), str(out / 'cjson.o'), str(out / 'tts.o'), str(out / 'media.o'),
+                '-o', str(out / f'session{enabled}')])
         for command in commands:
             result = subprocess.run(command, capture_output=True, text=True)
             if result.returncode:
                 raise AssertionError(result.stdout + result.stderr)
-        cls.binary = out / 'session'
+        cls.binaries = [out / f'session{enabled}' for enabled in (0, 1)]
 
     def run_case(self, case):
-        result = subprocess.run([str(self.binary), str(case)], capture_output=True, text=True)
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        for binary in self.binaries if case < 3 else self.binaries[1:]:
+            result = subprocess.run([str(binary), str(case)], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_native_audio_presentation(self):
+        self.run_case(3)
 
     def test_rejected_deltas_do_not_emit_or_complete_voice_or_typed_replies(self):
         self.run_case(0)

@@ -31,6 +31,9 @@
 #include "muse_ui.h"
 #include "muse_voice.h"
 #include "muse_wifi.h"
+#if CONFIG_MUSE_VOLC_TTS
+#include "muse_tts.h"
+#endif
 
 static const char *TAG = "muse";
 
@@ -66,6 +69,9 @@ void muse_app_run(const muse_board_t *board)
     ESP_LOGI(TAG, "board: %s", board->name);
     ESP_ERROR_CHECK(board->init());
     ESP_ERROR_CHECK(muse_settings_init());
+#if CONFIG_MUSE_VOLC_TTS
+    if (muse_tts_init() != ESP_OK) ESP_LOGW(TAG, "speech setup unavailable; replies stay text");
+#endif
     muse_settings_set_listener(on_setting);
     muse_state_init();
     muse_battery_init();

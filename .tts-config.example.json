@@ -1,0 +1,5 @@
+{
+  "api_key": "",
+  "speaker": "zh_female_vv_uranus_bigtts",
+  "endpoint": "https://openspeech.bytedance.com/api/v3/plan/tts/unidirectional"
+}
