@@ -45,6 +45,7 @@ before adding a feature to one.
 
 | Board | Target | Overlay(s) after `sdkconfig.defaults` | Helper |
 |---|---|---|---|
+| Seeed XIAO ESP32-S3 1.47 Touch Display | `esp32s3` | `devices/sdkconfig.muse;devices/sdkconfig.muse-seeed-xiao-s3-147` | `tools/muse/board.sh build xiao147` ([setup](devices/seeed-xiao-s3-147.md)) |
 | ESP32-C5 DevKitC-1 (default) | `esp32c5` | none | `tools/board.sh devkit` |
 | ESP32-C6 devkit without PSRAM | `esp32c6` | `devices/sdkconfig.c6-nopsram` | `tools/board.sh c6-nopsram` |
 | Espressif ESP32-S3-DevKitC-1 v1.1 (N8R8) | `esp32s3` | `devices/sdkconfig.espressif-s3-devkitc-1` | `tools/board.sh espressif-s3-devkitc-1` |

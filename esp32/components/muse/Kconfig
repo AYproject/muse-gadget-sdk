@@ -27,6 +27,10 @@ menu "Muse"
         config MUSE_BOARD_NONE
             bool "None (Home Link without a display)"
 
+        config MUSE_BOARD_SEEED_XIAO_S3_147
+            bool "Seeed XIAO ESP32-S3 1.47 Touch Display (PDM mic, external MAX98357A)"
+            depends on IDF_TARGET_ESP32S3
+
         config MUSE_BOARD_WAVESHARE_S3_175C
             bool "Waveshare ESP32-S3-Touch-AMOLED-1.75C"
             depends on IDF_TARGET_ESP32S3
@@ -123,6 +127,7 @@ menu "Muse"
     # idf_component.yml rules can select each board's managed components.
     config MUSE_BOARD_ID
         string
+        default "seeed_xiao_s3_147" if MUSE_BOARD_SEEED_XIAO_S3_147
         default "waveshare_s3_175c" if MUSE_BOARD_WAVESHARE_S3_175C
         default "waveshare_s3_175" if MUSE_BOARD_WAVESHARE_S3_175
         default "ostb_echoear_2st" if MUSE_BOARD_OSTB_ECHOEAR_2ST
